@@ -53,7 +53,7 @@ async fn main() {
     match opts.command {
         Commands::Dev => {
             thread::spawn(|| {
-                run_web_server(config, Commands::Dev);
+                let _ = run_web_server(config, Commands::Dev);
             }).join().expect("Web Server Thread failed")
         }
         Commands::Deploy => {
