@@ -1,30 +1,35 @@
 mod generator;
 mod config;
 mod error;
+mod adminweb;
 
 use std::fmt::Debug;
-use clap::{Parser, ValueEnum};
+use std::thread;
+use clap::{Parser, Subcommand, ValueEnum};
 use serde::{Deserialize, Serialize};
+use crate::adminweb::run_web_server;
 use crate::config::Config;
 
 
 // Define the command line arguments, -d --dev for development mode, -p --prod for production mode, -g --generate for generating the files
 #[derive(Parser, Debug)]
 #[clap(name = "basic")]
-struct Args {
-    #[clap(short, long, value_enum)]
-    mode: Mode,
+struct Cli {
+    #[command(subcommand)]
+    command: Commands,
     #[clap(short, long, value_enum, default_value = "sqlite")]
     db: Database
 }
 
-#[derive(Debug, Clone, ValueEnum)]
+#[derive(Debug, Clone, Subcommand)]
 #[clap(rename_all = "kebab_case")]
-enum Mode {
-    Development,
-    Production,
+enum Commands {
+    Dev,
+    Deploy,
     Generate,
 }
+
+
 #[derive(Debug, Clone, ValueEnum, Serialize, Deserialize)]
 #[clap(rename_all = "kebab_case")]
 pub enum Database {
@@ -36,7 +41,8 @@ pub enum Database {
 
 #[tokio::main]
 async fn main() {
-    let opts = Args::parse();
+    let opts = Cli::parse();
+
     if !generator::check_if_config_exists() {
         match generator::generate(opts.db).await {
             Ok(_) => println!("Generated files"),
@@ -44,13 +50,15 @@ async fn main() {
         }
     }
     let config = Config::get_config().await;
-    match opts.mode {
-        Mode::Development => {
-            println!("Development mode");
+    match opts.command {
+        Commands::Dev => {
+            thread::spawn(|| {
+                run_web_server(config, Commands::Dev);
+            }).join().expect("Web Server Thread failed")
         }
-        Mode::Production => {
+        Commands::Deploy => {
             println!("Production mode");
         }
-        Mode::Generate => {}
+        Commands::Generate => {}
     }
 }
