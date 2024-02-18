@@ -1,3 +1,0 @@
-db = "Mysql"
-gen_db = false
-db_address = "localhost"

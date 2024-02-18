@@ -2,8 +2,10 @@ mod generator;
 mod config;
 mod error;
 
+use std::fmt::Debug;
 use clap::{Parser, ValueEnum};
 use serde::{Deserialize, Serialize};
+use crate::config::Config;
 
 
 // Define the command line arguments, -d --dev for development mode, -p --prod for production mode, -g --generate for generating the files
@@ -27,23 +29,21 @@ enum Mode {
 #[clap(rename_all = "kebab_case")]
 pub enum Database {
     Mysql,
-    Postgres,
+    Postgresql,
     Sqlite,
 }
 
 
-
-fn main() {
+#[tokio::main]
+async fn main() {
     let opts = Args::parse();
     if !generator::check_if_config_exists() {
-        match generator::generate(opts.db) {
+        match generator::generate(opts.db).await {
             Ok(_) => println!("Generated files"),
             Err(e) => println!("Error: {}", e),
         }
-    } else {
-        println!("Using existing config file: {}", std::env::current_dir().unwrap().join("data/quanto-config.toml").to_str().unwrap());
     }
-
+    let config = Config::get_config().await;
     match opts.mode {
         Mode::Development => {
             println!("Development mode");
