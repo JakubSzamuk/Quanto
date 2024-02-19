@@ -2,6 +2,7 @@ mod generator;
 mod config;
 mod error;
 mod adminweb;
+mod databasehandler;
 
 use std::fmt::Debug;
 use std::thread;
